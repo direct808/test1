@@ -5,10 +5,16 @@ import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager'
 
 const ITEMS_CACHE_TTL = 1000 * 60 * 5
 
+/**
+ * Бизнес логика для работы с элементами
+ */
 @Injectable()
 export class ItemService {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
+  /**
+   * Формирование конечного списка элементов
+   */
   public getItems(): Promise<
     Array<ItemsResponse & { min_price_tradable: number }>
   > {
@@ -25,6 +31,12 @@ export class ItemService {
     })
   }
 
+  /**
+   * Объеединения двух списков в один
+   * @param itemsWithoutTradable
+   * @param itemsWithTradable
+   * @private
+   */
   private makeResultItems<T extends ItemsResponse[]>(
     itemsWithoutTradable: T,
     itemsWithTradable: T,
@@ -44,6 +56,10 @@ export class ItemService {
     return resultItems
   }
 
+  /**
+   * Получение двух списка элементов через API
+   * @private
+   */
   private async getItemsFromApi() {
     const api = new SkinportApi()
     const [itemsWithoutTradable, itemsWithTradable] = await Promise.all([
@@ -54,6 +70,10 @@ export class ItemService {
     return { itemsWithoutTradable, itemsWithTradable }
   }
 
+  /**
+   * Получение двух списка элементов через JSON файлы для отладки
+   * @private
+   */
   private getItemsFromFile() {
     const itemsWithoutTradable: ItemsResponse[] = JSON.parse(
       fs.readFileSync('./itemsWithoutTradable.json').toString(),
@@ -65,6 +85,11 @@ export class ItemService {
     return { itemsWithoutTradable, itemsWithTradable }
   }
 
+  /**
+   * Обертка для кэширования результата
+   * @param fn
+   * @private
+   */
   private async cacheWrap<T>(fn: () => Promise<T>): Promise<T> {
     let items: T = await this.cacheManager.get('items')
 
@@ -74,7 +99,7 @@ export class ItemService {
 
     items = await fn()
 
-    await this.cacheManager.set('items', items)
+    await this.cacheManager.set('items', items, ITEMS_CACHE_TTL)
 
     return items
   }

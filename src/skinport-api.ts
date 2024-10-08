@@ -20,11 +20,19 @@ export type ItemsResponse = {
   updated_at: number
 }
 
+/**
+ * Api для работы с skinport.com
+ */
+
 export class SkinportApi {
   private http = axios.create({
     baseURL: 'https://api.skinport.com',
   })
 
+  /**
+   * Получение списка элементов
+   * @param args
+   */
   public async items(args: ItemsArgs): Promise<ItemsResponse[]> {
     const { appId = 730, currency = 'EUR', tradable } = args
     const { data } = await this.http.get('/v1/items', {

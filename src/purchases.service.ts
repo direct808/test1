@@ -3,6 +3,9 @@ import { Transactions } from './transactions'
 import { HttpException, Injectable } from '@nestjs/common'
 import { ItemService } from './item.service'
 
+/**
+ * Сервис для покупок
+ */
 @Injectable()
 export class PurchasesService {
   constructor(
@@ -10,6 +13,10 @@ export class PurchasesService {
     private readonly itemService: ItemService,
   ) {}
 
+  /**
+   * Покупка элемента
+   * @param itemId
+   */
   public async buy(itemId: string) {
     const item = await this.getItem(itemId)
     const balance = await this.getUserBalance()
@@ -23,6 +30,10 @@ export class PurchasesService {
     await this.buyItem(itemPrice)
   }
 
+  /**
+   * Получение баланса пользователя
+   * @private
+   */
   private async getUserBalance(): Promise<number> {
     const transactionsRepository = this.dataSource.getRepository(Transactions)
 
@@ -34,6 +45,11 @@ export class PurchasesService {
     return sum.balance
   }
 
+  /**
+   * Получение элемениа по его id
+   * @param itemId
+   * @private
+   */
   private async getItem(itemId: string) {
     const items = await this.itemService.getItems()
 
@@ -46,6 +62,11 @@ export class PurchasesService {
     return item
   }
 
+  /**
+   * Запись транзакции в БД на покупку элемента
+   * @param amount
+   * @private
+   */
   private async buyItem(amount: number) {
     const transactionsRepository = this.dataSource.getRepository(Transactions)
     const transaction = transactionsRepository.create({ amount: -amount })
