@@ -49,7 +49,7 @@ export class ItemService {
   }
 
   /**
-   * Объеединения двух списков в один
+   * Объединение двух списков в один
    * @param itemsWithoutTradable
    * @param itemsWithTradable
    * @private
