@@ -18,10 +18,10 @@ export class PurchasesService {
    * @param itemId
    */
   public async buy(itemId: string) {
-    const item = await this.itemService.getItemById(itemId)
-    const balance = await this.getUserBalance()
+    const { min_price_tradable: itemPrice } =
+      await this.itemService.getItemById(itemId)
 
-    const itemPrice = item.min_price_tradable
+    const balance = await this.getUserBalance()
 
     if (itemPrice > balance) {
       throw new HttpException('Insufficient funds', 400)
