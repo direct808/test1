@@ -18,7 +18,7 @@ export class PurchasesService {
    * @param itemId
    */
   public async buy(itemId: string) {
-    const item = await this.getItem(itemId)
+    const item = await this.itemService.getItemById(itemId)
     const balance = await this.getUserBalance()
 
     const itemPrice = item.min_price_tradable
@@ -27,7 +27,7 @@ export class PurchasesService {
       throw new HttpException('Insufficient funds', 400)
     }
 
-    await this.buyItem(itemPrice)
+    await this.buyItem(itemPrice, itemId)
   }
 
   /**
@@ -46,30 +46,17 @@ export class PurchasesService {
   }
 
   /**
-   * Получение элемениа по его id
+   * Запись транзакции в БД на покупку элемента
+   * @param amount
    * @param itemId
    * @private
    */
-  private async getItem(itemId: string) {
-    const items = await this.itemService.getItems()
-
-    const item = items.find((item) => item.market_hash_name === itemId)
-
-    if (!item) {
-      throw new HttpException('Item not found: ' + itemId, 400)
-    }
-
-    return item
-  }
-
-  /**
-   * Запись транзакции в БД на покупку элемента
-   * @param amount
-   * @private
-   */
-  private async buyItem(amount: number) {
+  private async buyItem(amount: number, itemId: string) {
     const transactionsRepository = this.dataSource.getRepository(Transactions)
-    const transaction = transactionsRepository.create({ amount: -amount })
+    const transaction = transactionsRepository.create({
+      amount: -amount,
+      itemId,
+    })
     await transactionsRepository.save(transaction)
   }
 }
