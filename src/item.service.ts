@@ -32,23 +32,6 @@ export class ItemService {
   }
 
   /**
-   * Получение элемениа по его id
-   * @param itemId
-   * @private
-   */
-  public async getItemById(itemId: string) {
-    const items = await this.getItems()
-
-    const item = items.find((item) => item.market_hash_name === itemId)
-
-    if (!item) {
-      throw new HttpException('Item not found: ' + itemId, 400)
-    }
-
-    return item
-  }
-
-  /**
    * Объединение двух списков в один
    * @param itemsWithoutTradable
    * @param itemsWithTradable

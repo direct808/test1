@@ -5,9 +5,9 @@ import 'cache-manager'
 import { redisStore } from 'cache-manager-redis-store'
 import type { RedisClientOptions } from 'redis'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { Transactions } from './transactions'
 import { PurchasesService } from './purchases.service'
 import { ItemService } from './item.service'
+import { Item, Transaction, User } from './entities'
 
 @Module({
   imports: [
@@ -24,8 +24,9 @@ import { ItemService } from './item.service'
       username: 'postgres',
       password: 'postgres',
       database: 'db',
-      entities: [Transactions],
+      entities: [Transaction, User, Item],
       synchronize: true,
+      logging: 'all',
     }),
   ],
   controllers: [AppController],

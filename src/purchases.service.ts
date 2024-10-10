@@ -1,62 +1,77 @@
-import { DataSource } from 'typeorm'
-import { Transactions } from './transactions'
+import { DataSource, EntityManager } from 'typeorm'
 import { HttpException, Injectable } from '@nestjs/common'
-import { ItemService } from './item.service'
+import { Item, Transaction, User } from './entities'
 
 /**
  * Сервис для покупок
  */
 @Injectable()
 export class PurchasesService {
-  constructor(
-    private readonly dataSource: DataSource,
-    private readonly itemService: ItemService,
-  ) {}
+  constructor(private readonly dataSource: DataSource) {}
 
   /**
    * Покупка элемента
    * @param itemId
+   * @param userId
    */
-  public async buy(itemId: string) {
-    const { min_price_tradable: itemPrice } =
-      await this.itemService.getItemById(itemId)
+  public async buy(itemId: string, userId: string) {
+    return this.dataSource.transaction(
+      'REPEATABLE READ',
+      async (transaction) => {
+        const item = await this.getItemById(transaction, itemId)
+        const user = await this.getUser(transaction, userId)
 
-    const balance = await this.getUserBalance()
+        if (item.price > user.balance) {
+          throw new HttpException('Insufficient funds', 400)
+        }
 
-    if (itemPrice > balance) {
-      throw new HttpException('Insufficient funds', 400)
-    }
-
-    await this.buyItem(itemPrice, itemId)
+        await this.buyItem(transaction, item, user)
+      },
+    )
   }
 
   /**
    * Получение баланса пользователя
    * @private
    */
-  private async getUserBalance(): Promise<number> {
-    const transactionsRepository = this.dataSource.getRepository(Transactions)
-
-    const sum = await transactionsRepository
-      .createQueryBuilder()
-      .select('COALESCE(SUM(amount), 0)', 'balance')
-      .getRawOne()
-
-    return sum.balance
+  private getUser(transaction: EntityManager, userId: string): Promise<User> {
+    const userRepository = transaction.getRepository(User)
+    return userRepository.findOneOrFail({ where: { id: userId } })
   }
 
   /**
    * Запись транзакции в БД на покупку элемента
-   * @param amount
+   * @param transaction
+   * @param item
+   * @param user
+   * @private
+   */
+  private async buyItem(transaction: EntityManager, item: Item, user: User) {
+    const transactionsRepository = transaction.getRepository(Transaction)
+    const userRepository = transaction.getRepository(User)
+    const transactionItem = transactionsRepository.create({
+      amount: -item.price,
+      item,
+      user,
+    })
+
+    user.balance -= item.price
+
+    await transactionsRepository.save(transactionItem)
+    await userRepository.save(user)
+  }
+
+  /**
+   * Получение товара по id
+   * @param transaction
    * @param itemId
    * @private
    */
-  private async buyItem(amount: number, itemId: string) {
-    const transactionsRepository = this.dataSource.getRepository(Transactions)
-    const transaction = transactionsRepository.create({
-      amount: -amount,
-      itemId,
-    })
-    await transactionsRepository.save(transaction)
+  private getItemById(
+    transaction: EntityManager,
+    itemId: string,
+  ): Promise<Item> {
+    const itemRepository = transaction.getRepository(Item)
+    return itemRepository.findOneOrFail({ where: { id: itemId } })
   }
 }
